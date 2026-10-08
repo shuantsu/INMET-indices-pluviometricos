@@ -9,6 +9,8 @@ const path = require('path');
 const readline = require('readline');
 const { stdin: input, stdout: output } = require('process');
 const { chromium } = require('playwright');
+require('dotenv').config();
+const { inserirLeitura, closePool } = require('./db');
 
 const CIDADES_FILE = path.join(__dirname, 'geocodes.json');
 // Caminho opcional do Chromium via env (útil no Windows com Device Guard,
@@ -35,6 +37,52 @@ function slug(nome) {
   return semAcento(nome.split('-')[0].trim().toLowerCase())
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-]/g, '');
+}
+
+// Último valor válido do CSV do Highcharts (ex: "18";1,8;97;19,3;14,7).
+// Válido = pelo menos 1 das 4 métricas preenchida; vazio ou "-" não conta.
+// "0" conta como válido (não usar truthiness).
+function numVal(s) {
+  const t = (s || '').trim().replace(/^"|"$/g, '').replace(',', '.');
+  if (t === '' || t === '-') return null;
+  const n = Number(t);
+  return Number.isNaN(n) ? null : n;
+}
+
+function acharUltimoValido(csv) {
+  const linhas = String(csv || '')
+    .replace(/^\uFEFF/, '')
+    .split(/\r?\n/);
+  // Pula o header e percorre de baixo para cima.
+  for (let i = linhas.length - 1; i >= 1; i--) {
+    const lin = (linhas[i] || '').trim();
+    if (!lin) continue;
+    const cols = lin.split(';');
+    if (cols.length < 2) continue;
+    const horaRaw = (cols[0] || '').replace(/"/g, '').trim();
+    if (!/^\d{1,2}$/.test(horaRaw)) continue;
+    const hora_utc = parseInt(horaRaw, 10);
+    const precipitacao = numVal(cols[1]);
+    const umidade = numVal(cols[2]);
+    const temperatura = numVal(cols[3]);
+    const sensacao = numVal(cols[4]);
+    if (
+      precipitacao !== null ||
+      umidade !== null ||
+      temperatura !== null ||
+      sensacao !== null
+    ) {
+      return {
+        hora_utc,
+        hora_brt: ((hora_utc - 3) % 24 + 24) % 24,
+        precipitacao,
+        umidade: umidade !== null ? Math.round(umidade) : null,
+        temperatura,
+        sensacao,
+      };
+    }
+  }
+  return null;
 }
 
 // Leitor linha a linha via async iterator: funciona tanto no terminal
@@ -109,6 +157,26 @@ async function baixarCsv(entry) {
     const destino = path.join(__dirname, `${slug(entry.nome)}-${timestamp}.csv`);
     fs.writeFileSync(destino, '﻿' + csv);
     console.log('CSV salvo em:', destino);
+
+    // MySQL: insere o último valor válido (idempotente por
+    // UNIQUE KEY (geocode, coletado_em, hora_utc)). Erro de banco
+    // não apaga o CSV — só loga.
+    try {
+      const ultimo = acharUltimoValido(csv);
+      if (!ultimo) {
+        console.log('MySQL: nenhum valor válido no CSV — nada a inserir.');
+      } else {
+        console.log(
+          `Último válido: hora_utc=${ultimo.hora_utc} ` +
+            `(BRT ${String(ultimo.hora_brt).padStart(2, '0')}h); ` +
+            `${ultimo.precipitacao ?? '—'};${ultimo.umidade ?? '—'};` +
+            `${ultimo.temperatura ?? '—'};${ultimo.sensacao ?? '—'}`
+        );
+        await inserirLeitura(entry, ultimo, new Date(timestamp * 1000));
+      }
+    } catch (errDb) {
+      console.error('MySQL (insert pulado, CSV mantido):', errDb.message);
+    }
   } finally {
     await browser.close();
   }
@@ -222,5 +290,10 @@ async function fluxoNovaCidade(rl, banco) {
     if (err.message !== 'EOF') console.error('Erro:', err.message);
   } finally {
     rl.close();
+    try {
+      await closePool();
+    } catch (_) {
+      // ignora erro ao fechar pool
+    }
   }
 })();

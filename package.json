@@ -6,6 +6,7 @@
   "scripts": {
     "baixar": "node buscar_geocode.js",
     "geocodes": "node salvar_geocodes.js",
+    "db:test": "node -e \"require('dotenv').config();require('./db').testarConexao().then(()=>process.exit(0)).catch(e=>{console.error(e.message);process.exit(1)})\"",
     "setup:browser": "playwright install chromium",
     "setup:browser:linux": "playwright install --with-deps chromium"
   },
@@ -14,6 +15,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "dotenv": "^18.0.6",
+    "mysql2": "^3.24.5",
     "playwright": "^1.64.0"
   }
 }

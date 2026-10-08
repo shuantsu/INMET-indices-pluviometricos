@@ -3,3 +3,4 @@ node_modules
 geocodes.json
 *.csv
 *.html
+.env
