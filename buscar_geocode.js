@@ -60,11 +60,23 @@ async function baixarCsv(entry) {
   // Headless + --no-sandbox: obrigatório em servidor Linux (AlmaLinux, root/SSH).
   // Sem executablePath, o Playwright resolve o Chromium do cache padrão.
   // Para depurar com janela no Windows: PLAYWRIGHT_HEADED=1 node buscar_geocode.js
-  const browser = await chromium.launch({
-    headless: process.env.PLAYWRIGHT_HEADED !== '1',
-    ...(CHROMIUM_EXE ? { executablePath: CHROMIUM_EXE } : {}),
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
+  let browser;
+  try {
+    browser = await chromium.launch({
+      headless: process.env.PLAYWRIGHT_HEADED !== '1',
+      ...(CHROMIUM_EXE ? { executablePath: CHROMIUM_EXE } : {}),
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+  } catch (err) {
+    if (/Executable doesn't exist/i.test(err.message || '')) {
+      throw new Error(
+        'Navegador do Playwright não instalado. Rode: npx playwright install chromium ' +
+          '(no AlmaLinux como root, prefira: npx playwright install --with-deps chromium). ' +
+          'Detalhe: ' + (err.message || '').split('\n')[0]
+      );
+    }
+    throw err;
+  }
   const context = await browser.newContext();
   // Atalho: o select do autocomplete só grava localStorage e recarrega '/'.
   await context.addInitScript(
