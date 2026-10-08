@@ -4,3 +4,4 @@ geocodes.json
 *.csv
 *.html
 .env
+config.include.php

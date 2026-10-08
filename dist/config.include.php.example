@@ -1,0 +1,6 @@
+<?php
+
+$host = 'localhost';
+$dbname = 'seu_banco_de_dados';
+$user = 'seu_usuario';
+$pass = 'sua_senha';
