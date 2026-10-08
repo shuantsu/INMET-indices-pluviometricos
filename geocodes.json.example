@@ -1,0 +1,44 @@
+{
+  "uruguaiana rs": {
+    "geocode": 4322400,
+    "nome": "Uruguaiana-RS",
+    "custom": "RS-Uruguaiana",
+    "latitude": "-29.84036185237524",
+    "longitude": "-56.7291279758998"
+  },
+  "santiago rs": {
+    "geocode": 4317400,
+    "nome": "Santiago-RS",
+    "custom": "RS-Santiago",
+    "latitude": "-29.126888371124853",
+    "longitude": "-54.796520301278974"
+  },
+  "porto xavier rs": {
+    "geocode": 4315107,
+    "nome": "Porto Xavier-RS",
+    "custom": "RS-Porto Xavier",
+    "latitude": "-27.93259794736857",
+    "longitude": "-55.14411357173886"
+  },
+  "santa rosa rs": {
+    "geocode": 4317202,
+    "nome": "Santa Rosa-RS",
+    "custom": "RS-Santa Rosa",
+    "latitude": "-27.86526532587383",
+    "longitude": "-54.49796243800658"
+  },
+  "itaqui rs": {
+    "geocode": 4310603,
+    "nome": "Itaqui-RS",
+    "custom": "RS-Itaqui",
+    "latitude": "-29.21365563314831",
+    "longitude": "-56.17503208069527"
+  },
+  "sao borja": {
+    "geocode": 4318002,
+    "nome": "São Borja-RS",
+    "custom": "RS-São Borja",
+    "latitude": "-28.746929258208105",
+    "longitude": "-55.797188987489136"
+  }
+}

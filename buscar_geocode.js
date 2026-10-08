@@ -80,7 +80,8 @@ async function baixarCsv(entry) {
       if (!chart) throw new Error('Gráfico Highcharts não encontrado');
       return chart.getCSV(true);
     });
-    const destino = path.join(__dirname, `${slug(entry.nome)}.csv`);
+    const timestamp = Math.floor(Date.now() / 1000);
+    const destino = path.join(__dirname, `${slug(entry.nome)}-${timestamp}.csv`);
     fs.writeFileSync(destino, '﻿' + csv);
     console.log('CSV salvo em:', destino);
   } finally {

@@ -1,4 +1,5 @@
-porto-xavier-resultado.png
-porto-xavier.csv
+*.png
 node_modules
 geocodes.json
+*.csv
+*.html
