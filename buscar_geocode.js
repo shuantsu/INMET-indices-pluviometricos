@@ -11,10 +11,12 @@ const { stdin: input, stdout: output } = require('process');
 const { chromium } = require('playwright');
 
 const CIDADES_FILE = path.join(__dirname, 'geocodes.json');
-// Chromium puro: o build 1248 está bloqueado pelo Device Guard (spawn UNKNOWN),
-// o 1243 executa normalmente.
-const CHROMIUM_EXE =
-  'C:\\Users\\shuan\\AppData\\Local\\ms-playwright\\chromium-1243\\chrome-win64\\chrome.exe';
+// Caminho opcional do Chromium via env (útil no Windows com Device Guard,
+// onde o build 1248 dá `spawn UNKNOWN` e o 1243 funciona).
+// Ex (Windows): set PLAYWRIGHT_CHROMIUM_EXE=C:\...\chromium-1243\chrome-win64\chrome.exe
+// No Linux (ex: AlmaLinux headless), deixe vazio: o Playwright usa
+// ~/.cache/ms-playwright instalado via `npx playwright install chromium`.
+const CHROMIUM_EXE = process.env.PLAYWRIGHT_CHROMIUM_EXE || null;
 
 function semAcento(s) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -55,7 +57,14 @@ async function autocomplete(termo) {
 }
 
 async function baixarCsv(entry) {
-  const browser = await chromium.launch({ executablePath: CHROMIUM_EXE });
+  // Headless + --no-sandbox: obrigatório em servidor Linux (AlmaLinux, root/SSH).
+  // Sem executablePath, o Playwright resolve o Chromium do cache padrão.
+  // Para depurar com janela no Windows: PLAYWRIGHT_HEADED=1 node buscar_geocode.js
+  const browser = await chromium.launch({
+    headless: process.env.PLAYWRIGHT_HEADED !== '1',
+    ...(CHROMIUM_EXE ? { executablePath: CHROMIUM_EXE } : {}),
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  });
   const context = await browser.newContext();
   // Atalho: o select do autocomplete só grava localStorage e recarrega '/'.
   await context.addInitScript(
@@ -68,10 +77,14 @@ async function baixarCsv(entry) {
   const page = await context.newPage();
   try {
     console.log(`Abrindo portal já em ${entry.nome} ...`);
-    await page.goto('https://portal.inmet.gov.br/', { waitUntil: 'domcontentloaded' });
+    // O portal do INMET é pesado/lento; 30s estoura com frequência.
+    await page.goto('https://portal.inmet.gov.br/', {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
     await page.locator('text=Condições Diárias').first().waitFor({
       state: 'visible',
-      timeout: 30000,
+      timeout: 60000,
     });
     // "Download CSV" do Highcharts é gerado no browser (URL blob:).
     const csv = await page.evaluate(() => {

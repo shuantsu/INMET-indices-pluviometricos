@@ -2,9 +2,12 @@
   "name": "indices_pluvimetricos",
   "version": "1.0.0",
   "description": "",
-  "main": "buscar_porto_xavier.js",
+  "main": "buscar_geocode.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "baixar": "node buscar_geocode.js",
+    "geocodes": "node salvar_geocodes.js",
+    "setup:browser": "playwright install chromium",
+    "setup:browser:linux": "playwright install --with-deps chromium"
   },
   "keywords": [],
   "author": "",

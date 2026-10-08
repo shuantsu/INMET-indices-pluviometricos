@@ -280,19 +280,31 @@ render(atual);
 
 
 def abrir_webview2(html_path, titulo="INMET (BRT)"):
-    """Abre o HTML em janela WebView2 (Edge). Exige `pip install pywebview`."""
+    """Abre o HTML em janela (WebView2/Edge no Windows, gtk/qt no Linux).
+
+    Exige `pip install pywebview`. Em servidor headless (sem DISPLAY),
+    use `--no-webview` em vez de chamar esta função.
+    """
     try:
         import webview
     except ImportError:
         raise RuntimeError("pywebview não instalado. Rode: python -m pip install pywebview")
     url = "file:///" + os.path.abspath(html_path).replace("\\", "/")
     win = webview.create_window(titulo, url, width=1200, height=800)
-    # gui="edgechromium" força WebView2 no Windows; cai para auto se indisponível
-    try:
-        webview.start(gui="edgechromium")
-    except Exception:
-        webview.start()
+    if sys.platform == "win32":
+        # gui="edgechromium" força WebView2 no Windows; cai para auto se indisponível
+        try:
+            webview.start(gui="edgechromium")
+        except Exception:
+            webview.start()
+    else:
+        webview.start()  # Linux/macOS: backend automático (gtk/qt/cocoa)
     return win
+
+
+def sem_display():
+    """True em servidor headless Linux (SSH sem X/Wayland)."""
+    return sys.platform.startswith("linux") and not os.environ.get("DISPLAY")
 
 
 def main():
@@ -315,9 +327,14 @@ def main():
         print(f"  - {d['arquivo']} ({d['cidade']}, {d['coletado_em']})")
     print(f"HTML salvo em: {destino}")
 
-    if not args.no_webview:
-        print("Abrindo em WebView2...")
-        abrir_webview2(destino)
+    if args.no_webview or sem_display():
+        if sem_display() and not args.no_webview:
+            print("Sem DISPLAY (headless Linux): HTML gerado sem abrir janela.")
+            print("Sirva com: python3 -m http.server 8000  ou baixe o HTML via scp.")
+        return
+
+    print("Abrindo em WebView2...")
+    abrir_webview2(destino)
 
 
 if __name__ == "__main__":

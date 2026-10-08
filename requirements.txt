@@ -1,0 +1,2 @@
+pandas
+pywebview  # opcional; desnecessário em servidor headless (use --no-webview)
