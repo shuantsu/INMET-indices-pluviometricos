@@ -39,7 +39,9 @@ function slug(nome) {
     .replace(/[^a-z0-9-]/g, '');
 }
 
-// Último valor válido do CSV do Highcharts (ex: "18";1,8;97;19,3;14,7).
+// Último valor válido do CSV do Highcharts.
+// Formatos vistos: ";" + decimal vírgula ("18";1,8;97;19,3;14,7)
+//             e   "," + decimal ponto   ("23",0,97,19.3,19.9)
 // Válido = pelo menos 1 das 4 métricas preenchida; vazio ou "-" não conta.
 // "0" conta como válido (não usar truthiness).
 function numVal(s) {
@@ -47,6 +49,12 @@ function numVal(s) {
   if (t === '' || t === '-') return null;
   const n = Number(t);
   return Number.isNaN(n) ? null : n;
+}
+
+function splitCsvLin(lin) {
+  // Com ';' o separador é ';' (decimal com vírgula).
+  // Sem ';', separador ',' (decimal com ponto).
+  return lin.includes(';') ? lin.split(';') : lin.split(',');
 }
 
 function acharUltimoValido(csv) {
@@ -57,7 +65,7 @@ function acharUltimoValido(csv) {
   for (let i = linhas.length - 1; i >= 1; i--) {
     const lin = (linhas[i] || '').trim();
     if (!lin) continue;
-    const cols = lin.split(';');
+    const cols = splitCsvLin(lin);
     if (cols.length < 2) continue;
     const horaRaw = (cols[0] || '').replace(/"/g, '').trim();
     if (!/^\d{1,2}$/.test(horaRaw)) continue;
